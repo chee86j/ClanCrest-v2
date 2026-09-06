@@ -9,13 +9,58 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === "production";
+
+const parseAllowedOrigins = () => {
+  const configured = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL;
+
+  if (configured) {
+    return configured
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+  }
+
+  return ["http://localhost:5173", "http://localhost:3000"];
+};
+
+const allowedOrigins = parseAllowedOrigins();
 
 // Security middleware
-app.use(helmet());
+app.disable("x-powered-by");
+app.use(
+  helmet({
+    contentSecurityPolicy: isProduction
+      ? {
+          useDefaults: true,
+          directives: {
+            "default-src": ["'self'"],
+            "base-uri": ["'self'"],
+            "object-src": ["'none'"],
+            "frame-ancestors": ["'none'"],
+          },
+        }
+      : false,
+    hsts: isProduction,
+  })
+);
 
-// CORS configuration
+// CORS configuration: explicit allowlist, no wildcard credentials.
 const corsOptions = {
-  origin: ["http://localhost:5173", "http://localhost:3000"],
+  origin(origin, callback) {
+    // Allow non-browser clients such as curl and health probes.
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Origin is not allowed by CORS"));
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };
@@ -25,20 +70,22 @@ app.use(cors(corsOptions));
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests from this IP, please try again later." },
 });
 app.use(limiter);
 
 // Body parsing middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+const requestBodyLimit = process.env.REQUEST_BODY_LIMIT || "1mb";
+app.use(express.json({ limit: requestBodyLimit, strict: true }));
+app.use(express.urlencoded({ extended: true, limit: requestBodyLimit }));
 
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
     status: "OK",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
   });
 });
 
@@ -51,17 +98,24 @@ app.get("/api/test", (req, res) => {
 });
 
 // 404 handler
-app.use("*", (req, res) => {
+app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error("Server error:", error);
+  if (!isProduction) {
+    console.error("Server error:", error);
+  }
+
+  if (error.message === "Origin is not allowed by CORS") {
+    res.status(403).json({ message: "CORS origin denied" });
+    return;
+  }
 
   res.status(500).json({
     message: "Internal server error",
-    error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    error: isProduction ? undefined : error.message,
   });
 });
 
@@ -69,7 +123,6 @@ app.use((error, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
 });
 
 // Graceful shutdown

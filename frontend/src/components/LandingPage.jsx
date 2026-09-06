@@ -49,9 +49,9 @@ const LandingPage = () => {
     },
     {
       id: "secure",
-      title: "Enterprise-Grade Security",
+      title: "Privacy-Conscious Design",
       description:
-        "Your family data is protected with Google OAuth authentication and secure cloud storage. Your privacy is our priority with bank-level security standards.",
+        "ClanCrest is being designed with authentication, private family data, and careful access controls in mind. Production security controls must be completed before storing real family records.",
       icon: "🔐",
       color: "linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)",
     },
