@@ -365,3 +365,50 @@ input:focus, textarea:focus, select:focus {
     content: " (" attr(href) ")";
   }
 }
+
+
+/* Authentication boundary */
+.auth-wall {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.auth-card {
+  width: min(640px, 100%);
+  padding: 2rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 1rem;
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-lg, 0 20px 25px -5px rgb(0 0 0 / 0.1));
+}
+
+.auth-card h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 6vw, 3rem);
+}
+
+.auth-card p {
+  line-height: 1.6;
+}
+
+.auth-note {
+  padding: 1rem;
+  border-left: 4px solid var(--warning-color);
+  border-radius: 0.5rem;
+  background: var(--warning-50);
+}
+
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.auth-actions a {
+  text-decoration: none;
+}

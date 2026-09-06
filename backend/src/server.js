@@ -3,6 +3,11 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
+import {
+  googleLoginPlaceholder,
+  requireAuth,
+  sessionStatus,
+} from "./auth.js";
 
 // Load environment variables
 dotenv.config();
@@ -95,6 +100,16 @@ app.get("/api/test", (req, res) => {
     message: "Backend is running successfully!",
     timestamp: new Date().toISOString(),
   });
+});
+
+// Authentication contract. These routes intentionally do not fake a login.
+app.get("/api/auth/session", sessionStatus);
+app.get("/api/auth/google", googleLoginPlaceholder);
+
+// Protected API example. Future family-tree CRUD routes should use this guard
+// and enforce record ownership inside the data-access query.
+app.get("/api/family-trees", requireAuth, (req, res) => {
+  res.json({ familyTrees: [] });
 });
 
 // 404 handler
